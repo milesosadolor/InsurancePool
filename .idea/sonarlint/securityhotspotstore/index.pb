@@ -11,3 +11,5 @@ M
 tests/auditor-rewards.test.ts,0/5/05fe3cd8a7924d844f0d87fdba2bc2ab552e0bb5
 L
 tests/insurance-pool.test.ts,6/c/6c2d18ec175691240aadc331d1188e5bd510317d
+D
+tests/claims.test.ts,6/4/6422494e25c83c54f4da002755166d28f14ed294
