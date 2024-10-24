@@ -1,21 +1,41 @@
+import { describe, it, expect, clarify } from 'clarinet';
 
-import { describe, expect, it } from "vitest";
+// Load the contract
+const insurancePoolContract = clarify.load("insurance-pool.clar");
 
-const accounts = simnet.getAccounts();
-const address1 = accounts.get("wallet_1")!;
-
-/*
-  The test below is an example. To learn more, read the testing documentation here:
-  https://docs.hiro.so/stacks/clarinet-js-sdk
-*/
-
-describe("example tests", () => {
-  it("ensures simnet is well initalised", () => {
-    expect(simnet.blockHeight).toBeDefined();
+describe("Insurance Pool Contract", () => {
+  
+  it("should allow a project to stake funds", async () => {
+    const receipt = await insurancePoolContract.callPublicFn("stake", [100, 2000]);
+    expect(receipt.success).toBe(true);
+    
+    const projectData = await insurancePoolContract.getMapData("insurance-pool", { projectId: 100 });
+    expect(projectData.stakedAmount).toBe(2000);
   });
-
-  // it("shows an example", () => {
-  //   const { result } = simnet.callReadOnlyFn("counter", "get-counter", [], address1);
-  //   expect(result).toBeUint(0);
-  // });
+  
+  it("should fail if the stake amount is below the minimum", async () => {
+    const receipt = await insurancePoolContract.callPublicFn("stake", [101, 500]);
+    expect(receipt.success).toBe(false);  // Minimum stake is 1000
+  });
+  
+  it("should confirm if a project is covered", async () => {
+    await insurancePoolContract.callPublicFn("stake", [102, 2000]);
+    
+    const isCovered = await insurancePoolContract.callReadOnlyFn("is-covered", [102]);
+    expect(isCovered.ok).toBe(true);
+  });
+  
+  it("should allow withdrawal if the lock period is over", async () => {
+    await insurancePoolContract.callPublicFn("stake", [103, 2000]);
+    
+    // Simulate the passing of blocks
+    await clarify.mineBlocks(LOCK_PERIOD + 1);
+    
+    const receipt = await insurancePoolContract.callPublicFn("withdraw-stake", [103]);
+    expect(receipt.success).toBe(true);
+    
+    const projectData = await insurancePoolContract.getMapData("insurance-pool", { projectId: 103 });
+    expect(projectData).toBeNull(); // Funds were withdrawn, so the project is no longer in the map
+  });
+  
 });
