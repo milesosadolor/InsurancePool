@@ -32,3 +32,22 @@
         (if (<= (- current-block start-time) LOCK_PERIOD)
           (ok true) ;; Eligible for insurance
           (ok false))))))
+
+;; Add function to withdraw funds if lock period is over
+(define-public (withdraw-stake (project-id uint))
+  (let (
+    (project-info (map-get insurance-pool { project-id: project-id }))
+    (current-block block-height)
+  )
+    (if (is-none project-info)
+      (err u404) ;; Project not found
+      (let (
+        (locked-tokens (get locked-tokens (unwrap! project-info (err u1))))
+        (start-time (get start-time (unwrap! project-info (err u1))))
+      )
+        (if (> (- current-block start-time) LOCK_PERIOD)
+          ;; Release the staked funds
+          (begin
+            (map-delete insurance-pool { project-id: project-id })
+            (ok locked-tokens))
+          (err u2)))))) ;; Error: Tokens are still locked
