@@ -16,3 +16,19 @@
         (ok ()))
   ))
 
+;; Function to check if the project is eligible for coverage
+(define-read-only (is-covered (project-id uint))
+  (let (
+    (project-info (map-get insurance-pool { project-id: project-id }))
+    (current-block block-height)
+  )
+    (if (is-none project-info)
+      (err u404) ;; Error: Project not found
+      (let (
+        (locked-tokens (get locked-tokens (unwrap! project-info (err u1))))
+        (start-time (get start-time (unwrap! project-info (err u1))))
+      )
+        ;; Check if the lock period has passed
+        (if (<= (- current-block start-time) LOCK_PERIOD)
+          (ok true) ;; Eligible for insurance
+          (ok false))))))
