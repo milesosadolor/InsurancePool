@@ -1,21 +1,29 @@
+import { describe, it, expect, clarify } from 'clarinet';
 
-import { describe, expect, it } from "vitest";
+// Load the contract
+const auditorRewardsContract = clarify.load("auditor-rewards.clar");
 
-const accounts = simnet.getAccounts();
-const address1 = accounts.get("wallet_1")!;
-
-/*
-  The test below is an example. To learn more, read the testing documentation here:
-  https://docs.hiro.so/stacks/clarinet-js-sdk
-*/
-
-describe("example tests", () => {
-  it("ensures simnet is well initalised", () => {
-    expect(simnet.blockHeight).toBeDefined();
+describe("Auditor Rewards Contract", () => {
+  
+  it("should reward auditors for reviewing contracts", async () => {
+    const receipt = await auditorRewardsContract.callPublicFn("reward-auditor", ["ST1A2B3C4D5E6F"]);
+    expect(receipt.success).toBe(true);
+    
+    const auditorData = await auditorRewardsContract.getMapData("auditors", { auditorId: "ST1A2B3C4D5E6F" });
+    expect(auditorData.rewardsEarned).toBe(100);
   });
-
-  // it("shows an example", () => {
-  //   const { result } = simnet.callReadOnlyFn("counter", "get-counter", [], address1);
-  //   expect(result).toBeUint(0);
-  // });
+  
+  it("should accumulate rewards for auditors", async () => {
+    await auditorRewardsContract.callPublicFn("reward-auditor", ["ST1A2B3C4D5E6F"]);
+    await auditorRewardsContract.callPublicFn("reward-auditor", ["ST1A2B3C4D5E6F"]);
+    
+    const auditorData = await auditorRewardsContract.getMapData("auditors", { auditorId: "ST1A2B3C4D5E6F" });
+    expect(auditorData.rewardsEarned).toBe(200); // Accumulated rewards
+  });
+  
+  it("should return zero rewards for non-existing auditors", async () => {
+    const rewards = await auditorRewardsContract.callReadOnlyFn("get-auditor-rewards", ["ST2X2X3X4X5X6X"]);
+    expect(rewards.result).toBe("u0"); // No rewards for this auditor yet
+  });
+  
 });
